@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:carros_electricos_app/services/api_service.dart';
-import 'package:carros_electricos_app/models/car.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../services/api_service.dart';
+import '../models/car.dart';
 
 class CarListScreen extends StatefulWidget {
   const CarListScreen({super.key});
@@ -11,18 +12,29 @@ class CarListScreen extends StatefulWidget {
 
 class _CarListScreenState extends State<CarListScreen> {
   final ApiService apiService = ApiService();
+  final FlutterSecureStorage storage = const FlutterSecureStorage();
   late Future<List<Car>> futureCars;
 
   @override
   void initState() {
     super.initState();
+    _checkAuthStatus();
     futureCars = apiService.getCars();
+  }
+
+  Future<void> _checkAuthStatus() async {
+    String? token = await storage.read(key: 'auth_token');
+    if (token == null || token != 'authenticated') {
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, '/login');
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Mis Carros Eléctricos')),
+      appBar: AppBar(title: const Text('Mis Carros')),
       body: FutureBuilder<List<Car>>(
         future: futureCars,
         builder: (context, snapshot) {

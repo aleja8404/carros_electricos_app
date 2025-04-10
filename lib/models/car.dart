@@ -6,8 +6,8 @@ class Car {
 
   factory Car.fromJson(Map<String, dynamic> json) {
     return Car(
-      placa: json['placa'],
-      conductor: json['conductor'],
+      placa: json['placa'] as String,
+      conductor: json['conductor'] as String,
     );
   }
 }

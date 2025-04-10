@@ -1,77 +1,94 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:carros_electricos_app/services/api_service.dart';
 import 'package:carros_electricos_app/screens/login_screen.dart';
+import 'package:carros_electricos_app/screens/home_screen.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 
-// Genera los mocks para FlutterSecureStorage
 @GenerateMocks([FlutterSecureStorage])
 import 'widget_test.mocks.dart';
 
 void main() {
   late MockFlutterSecureStorage mockStorage;
-  late ApiService apiService;
 
   setUp(() {
-    // Inicializa el mock
     mockStorage = MockFlutterSecureStorage();
-    apiService = ApiService(storage: mockStorage);
-
-    // Configura el comportamiento del mock
     when(mockStorage.read(key: 'auth_token')).thenAnswer((_) async => null);
     when(mockStorage.write(key: 'auth_token', value: anyNamed('value')))
         .thenAnswer((_) async {});
   });
 
   testWidgets('Login screen displays correctly', (WidgetTester tester) async {
-    // Construye la app y renderiza un frame.
     await tester.pumpWidget(
-      MaterialApp(
-        home: LoginScreen(apiService: apiService),
+      MaterialApp( // Elimina 'const'
+        home: const LoginScreen(),
+        routes: {
+          '/home': (context) => const HomeScreen(),
+          '/login': (context) => const LoginScreen(),
+        },
       ),
     );
 
-    // Verifica que el título "Iniciar Sesión" esté presente en el AppBar.
-    expect(find.text('Iniciar Sesión'), findsOneWidget);
-
-    // Verifica que los campos de texto para usuario y contraseña estén presentes.
-    expect(find.widgetWithText(TextField, 'Usuario'), findsOneWidget);
-    expect(find.widgetWithText(TextField, 'Contraseña'), findsOneWidget);
-
-    // Verifica que el botón "Iniciar Sesión" esté presente.
-    expect(find.widgetWithText(ElevatedButton, 'Iniciar Sesión'), findsOneWidget);
-
-    // Verifica que los botones de texto "¿Olvidaste tu contraseña?" y "Nuevo Usuario - Registrarse" estén presentes.
-    expect(find.text('¿Olvidaste tu contraseña?'), findsOneWidget);
-    expect(find.text('Nuevo Usuario - Registrarse'), findsOneWidget);
+    expect(find.text('Sign In'), findsOneWidget);
+    expect(find.widgetWithText(TextField, 'User Name'), findsOneWidget);
+    expect(find.widgetWithText(TextField, 'Password'), findsOneWidget);
+    expect(find.widgetWithText(ElevatedButton, 'SIGN IN'), findsOneWidget);
   });
 
-  testWidgets('Login screen allows text input', (WidgetTester tester) async {
-    // Configura el mock para simular una respuesta exitosa del login
-    when(mockStorage.write(key: 'auth_token', value: anyNamed('value')))
-        .thenAnswer((_) async {});
-    when(mockStorage.read(key: 'auth_token')).thenAnswer((_) async => 'mock_token');
+  testWidgets('Login screen allows text input and successful login',
+      (WidgetTester tester) async {
+    // Configura el mock para que inicialmente no haya token
+    when(mockStorage.read(key: 'auth_token')).thenAnswer((_) async => null);
 
-    // Construye la app y renderiza un frame.
+    // Simula que después de escribir el token, la lectura devolverá 'authenticated'
+    when(mockStorage.write(key: 'auth_token', value: 'authenticated'))
+        .thenAnswer((_) async {
+      when(mockStorage.read(key: 'auth_token'))
+          .thenAnswer((_) async => 'authenticated');
+    });
+
     await tester.pumpWidget(
-      MaterialApp(
-        home: LoginScreen(apiService: apiService),
+      MaterialApp( // Elimina 'const'
+        home: const LoginScreen(),
+        routes: {
+          '/home': (context) => const HomeScreen(),
+          '/login': (context) => const LoginScreen(),
+        },
       ),
     );
 
-    // Ingresa texto en el campo de usuario.
-    await tester.enterText(find.widgetWithText(TextField, 'Usuario'), 'admin');
+    await tester.enterText(find.widgetWithText(TextField, 'User Name'), 'admin');
     expect(find.text('admin'), findsOneWidget);
 
-    // Ingresa texto en el campo de contraseña.
-    await tester.enterText(find.widgetWithText(TextField, 'Contraseña'), 'admin');
-    expect(find.text('admin'), findsOneWidget);
+    await tester.enterText(find.widgetWithText(TextField, 'Password'), 'admin');
+    // No verificamos el texto de la contraseña porque obscureText: true
 
-    // Toca el botón "Iniciar Sesión" (no verificamos la navegación aquí, solo la acción).
-    await tester.tap(find.widgetWithText(ElevatedButton, 'Iniciar Sesión'));
+    await tester.tap(find.widgetWithText(ElevatedButton, 'SIGN IN'));
     await tester.pump();
+    await Future.delayed(const Duration(milliseconds: 500));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(HomeScreen), findsOneWidget);
+  });
+
+  testWidgets('Login screen shows error on incorrect credentials',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(
+      MaterialApp( // Elimina 'const'
+        home: const LoginScreen(),
+        routes: {
+          '/home': (context) => const HomeScreen(),
+          '/login': (context) => const LoginScreen(),
+        },
+      ),
+    );
+
+    await tester.enterText(find.widgetWithText(TextField, 'User Name'), 'wrong');
+    await tester.enterText(find.widgetWithText(TextField, 'Password'), 'wrong');
+    await tester.tap(find.widgetWithText(ElevatedButton, 'SIGN IN'));
+    await tester.pump();
+
+    expect(find.text('Usuario o contraseña incorrectos'), findsOneWidget);
   });
 }
