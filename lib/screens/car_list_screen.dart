@@ -25,7 +25,7 @@ class _CarListScreenState extends State<CarListScreen> {
   Future<void> _checkAuthStatus() async {
     String? token = await storage.read(key: 'auth_token');
     if (token == null || token != 'authenticated') {
-      if (mounted) {
+      if (ModalRoute.of(context)?.settings.name != '/login' && mounted) {
         Navigator.pushReplacementNamed(context, '/login');
       }
     }
@@ -51,9 +51,30 @@ class _CarListScreenState extends State<CarListScreen> {
             itemCount: cars.length,
             itemBuilder: (context, index) {
               final car = cars[index];
-              return ListTile(
-                title: Text('Placa: ${car.placa}'),
-                subtitle: Text('Conductor: ${car.conductor}'),
+              return Card(
+                margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                child: ListTile(
+                  leading: (car.image != null && car.image!.isNotEmpty)
+                      ? Image.network(
+                          car.image!,
+                          width: 50,
+                          height: 50,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return const Icon(
+                              Icons.error,
+                              color: Colors.red,
+                              size: 50,
+                            );
+                          },
+                        )
+                      : const Icon(
+                          Icons.directions_car,
+                          size: 50,
+                        ),
+                  title: Text('Placa: ${car.placa ?? "Sin placa"}'),
+                  subtitle: Text('Conductor: ${car.conductor ?? "Sin conductor"}'),
+                ),
               );
             },
           );

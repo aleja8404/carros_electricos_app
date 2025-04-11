@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import '../models/car.dart';
 
 class ApiService {
-  final String baseUrl = 'https://github.com/aleja8404/carros_electricos_app';
+  final String baseUrl = 'https://67f7d1812466325443eadd17.mockapi.io/carros';
 
   Future<List<Car>> getCars() async {
     final response = await http.get(Uri.parse(baseUrl));
